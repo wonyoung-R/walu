@@ -66,7 +66,7 @@
   .cart:focus-visible{ border-color:var(--cyan); }
   .cart .ic{ font-size:34px; line-height:1; filter:drop-shadow(0 2px 0 rgba(0,0,0,.4)); }
   .cart .nm{ font-family:var(--disp); font-size:9px; margin:12px 0 6px; line-height:1.5; min-height:30px;
-    display:flex; align-items:center; justify-content:center; }
+    color:#fff; display:flex; align-items:center; justify-content:center; }
   .cart .bs{ font-size:16px; color:var(--dim); letter-spacing:.5px; }
   .cart .bs b{ color:var(--yellow); font-weight:400; }
   .cart .no{ font-family:var(--disp); font-size:8px; padding:2px 7px; display:inline-block; margin-top:3px; }
@@ -469,7 +469,8 @@ const GAMES=[
       const arr=[...opts].sort(()=>Math.random()-.5);
       return { promptHTML:`${a} ${op} ${b}`, answer:String(ans), buttonsOverride:arr.map(n=>({label:String(n),value:String(n),bg:'var(--panel2)',ink:'#fff'})) };
     },
-    promptSub:'맞으면 +1, 틀리면 -1'
+    wrongPenaltyMs:1000,
+    promptSub:'맞으면 +1점 · 틀리면 -1점 & 시간 -1초'
   }); }
 },
 /* 6. ARROW RUSH ------------------------------------------------- */
@@ -1034,9 +1035,10 @@ function runChoiceGame(root,api,cfg){
     if(cur.buttonsOverride) buildButtons(cur.buttonsOverride);
     else if(!btns.length) buildButtons(cfg.buttons);
   }
+  function flashTime(){ timeEl.style.color='var(--red)'; setTimeout(()=>{ timeEl.style.color='var(--yellow)'; },240); }
   function answer(v){ if(performance.now()>=end)return;
     if(v===cur.answer){ score++; Sound.tick(); }
-    else { score=Math.max(0,score-1); Sound.bad(); }
+    else { score=Math.max(0,score-1); Sound.bad(); if(cfg.wrongPenaltyMs){ end-=cfg.wrongPenaltyMs; flashTime(); } }
     scoreEl.textContent=score+'점'; nextQ();
   }
   timer=setInterval(()=>{ const left=Math.max(0,(end-performance.now())/1000); timeEl.textContent=left.toFixed(0);
@@ -1149,6 +1151,9 @@ function showResult(g,r,isNew,best){
     else { toast('복사 실패 — 메시지를 길게 눌러 복사하세요'); }
   });
   ov.append(row,share); play.append(ov);
+  // 연타 중 결과가 떠도 그 탭이 '다시하기'로 새어 들어가 점수를 스킵하지 않도록 잠깐 잠금
+  [again,menu,share].forEach(b=>{ b.disabled=true; b.style.opacity='.45'; });
+  setTimeout(()=>{ [again,menu,share].forEach(b=>{ b.disabled=false; b.style.opacity=''; }); }, 850);
   if(isNew) Sound.win();
 }
 
